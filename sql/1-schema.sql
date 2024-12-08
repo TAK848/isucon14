@@ -45,6 +45,7 @@ CREATE TABLE chairs
 -- ALTER TABLE chairs ADD COLUMN total_distance_updated_at DATETIME(6) NULL COMMENT '総移動距離の更新日時';
 
 ALTER TABLE chairs ADD INDEX idx_access_token (access_token);
+ALTER TABLE chairs ADD INDEX idx_owner_id (owner_id);
 
 DROP TABLE IF EXISTS chair_locations;
 -- CREATE TABLE chair_locations
