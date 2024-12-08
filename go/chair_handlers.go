@@ -112,16 +112,20 @@ func chairPostCoordinate(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	totalDistance := 0
-	if chair.Longitude != nil && chair.Latitude != nil {
-		totalDistance = chair.TotalDistance + calculateDistance(*chair.Latitude, *chair.Longitude, req.Latitude, req.Longitude)
-	} else {
-		// 初期地点登録のため0のまま
-	}
 	locationCreatedAt := time.Now()
-	if _, err := tx.ExecContext(ctx, "UPDATE chairs SET latitude = ?, longitude = ?, total_distance = ?, total_distance_updated_at = ? WHERE id = ?", req.Latitude, req.Longitude, totalDistance, locationCreatedAt, chair.ID); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
+
+	// 場所が変わったときのみupdateする
+	if (chair.Longitude == nil || chair.Latitude == nil) || (chair.Longitude != nil && chair.Latitude != nil && (*chair.Longitude != req.Longitude || *chair.Latitude != req.Latitude)) {
+		totalDistance := 0
+		if chair.Longitude != nil && chair.Latitude != nil {
+			totalDistance = chair.TotalDistance + calculateDistance(*chair.Latitude, *chair.Longitude, req.Latitude, req.Longitude)
+		} else {
+			// 初期地点登録のため0のまま
+		}
+		if _, err := tx.ExecContext(ctx, "UPDATE chairs SET latitude = ?, longitude = ?, total_distance = ?, total_distance_updated_at = ? WHERE id = ?", req.Latitude, req.Longitude, totalDistance, locationCreatedAt, chair.ID); err != nil {
+			writeError(w, http.StatusInternalServerError, err)
+			return
+		}
 	}
 
 	ride := &Ride{}
