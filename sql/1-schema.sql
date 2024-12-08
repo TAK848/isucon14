@@ -39,6 +39,10 @@ CREATE TABLE chairs
   PRIMARY KEY (id)
 )
   COMMENT = '椅子情報テーブル';
+-- ALTER TABLE chairs ADD COLUMN longitude INTEGER NULL COMMENT '経度';
+-- ALTER TABLE chairs ADD COLUMN latitude INTEGER NULL COMMENT '緯度';
+-- ALTER TABLE chairs ADD COLUMN total_distance INTEGER NOT NULL DEFAULT 0 COMMENT '総移動距離';
+-- ALTER TABLE chairs ADD COLUMN total_distance_updated_at DATETIME(6) NULL COMMENT '総移動距離の更新日時';
 
 ALTER TABLE chairs ADD INDEX idx_access_token (access_token);
 
