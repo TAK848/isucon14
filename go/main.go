@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-sql-driver/mysql"
+	"github.com/isucon/isucon14/webapp/go/chiinteg"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -66,6 +67,7 @@ func setup() http.Handler {
 	db = _db
 
 	mux := chi.NewRouter()
+	chiinteg.Integrate(mux)
 	mux.Use(middleware.Logger)
 	mux.Use(middleware.Recoverer)
 	mux.HandleFunc("POST /api/initialize", postInitialize)
