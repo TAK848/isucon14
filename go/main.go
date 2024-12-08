@@ -140,6 +140,12 @@ func postInitialize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	go func() {
+		if _, err := http.Get("http://192.168.0.35:9000/api/group/collect"); err != nil {
+			slog.Error("failed to communicate with pprotein", "error", err)
+		}
+	}()
+
 	writeJSON(w, http.StatusOK, postInitializeResponse{Language: "go"})
 }
 
