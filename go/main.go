@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"sync"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -25,6 +26,11 @@ func main() {
 	slog.Info("Listening on :8080")
 	http.ListenAndServe(":8080", mux)
 }
+
+var (
+	cacheLock  = sync.Mutex{}
+	chairCache = sync.Map{}
+)
 
 func setup() http.Handler {
 	host := os.Getenv("ISUCON_DB_HOST")
@@ -146,6 +152,11 @@ func postInitialize(w http.ResponseWriter, r *http.Request) {
 			slog.Error("failed to communicate with pprotein", "error", err)
 		}
 	}()
+
+	cacheLock.Lock()
+	chairCache = sync.Map{}
+	chairConnections = sync.Map{}
+	cacheLock.Unlock()
 
 	writeJSON(w, http.StatusOK, postInitializeResponse{Language: "go"})
 }

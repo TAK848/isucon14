@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"sync"
 
 	"github.com/oklog/ulid/v2"
 )
@@ -184,9 +188,57 @@ type chairGetNotificationResponseData struct {
 	Status                string     `json:"status"`
 }
 
+// SSE接続管理用の構造体
+type sseConnection struct {
+	w       http.ResponseWriter
+	flusher http.Flusher
+	ctx     context.Context
+	cancel  context.CancelFunc
+	ch      chan []byte // ステータス更新を受け取るチャネル
+}
+
+var chairConnections sync.Map
+
 func chairGetNotification(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	chair := ctx.Value("chair").(*Chair)
+
+	// SSE用ヘッダー
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		writeError(w, http.StatusInternalServerError, errors.New("streaming unsupported"))
+		return
+	}
+
+	// 既存の接続があれば終了させる (高々1本ルール)
+	if val, ok := chairConnections.Load(chair.ID); ok {
+		oldConn := val.(*sseConnection)
+		oldConn.cancel() // 古い接続をキャンセル
+		chairConnections.Delete(chair.ID)
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	conn := &sseConnection{
+		w:       w,
+		flusher: flusher,
+		ctx:     ctx,
+		cancel:  cancel,
+		ch:      make(chan []byte, 100), // バッファは適宜
+	}
+	chairConnections.Store(chair.ID, conn)
+
+	// 初期状態送信
+	if err := sendInitialStatusesForChair(ctx, chair.ID, conn); err != nil {
+		slog.Error("failed to send initial statuses", "error", err)
+		// 初期取得でエラーになってもSSEは確立済みなので、ここでreturnせずともよいが、
+		// 本例ではreturnすることにする
+		conn.cancel()
+		chairConnections.Delete(chair.ID)
+		return
+	}
 
 	tx, err := db.Beginx()
 	if err != nil {
@@ -262,6 +314,56 @@ func chairGetNotification(w http.ResponseWriter, r *http.Request) {
 		},
 		RetryAfterMs: 30,
 	})
+}
+
+// SSEでchairに対する最新状態を即時送信する処理
+// SSEコネクション確立時に呼ばれる
+func sendInitialStatusesForChair(ctx context.Context, chairID string, conn *sseConnection) error {
+	// chairIDに紐づく全ridesの最新ステータス取得(例: 未送信ステータスがあれば送る)
+	// 以下は一例。実際にはロジックに合わせて過去の未送信ステータス全部を取得し送信する必要がある。
+	rides, err := getRidesByChairID(ctx, chairID)
+	if err != nil {
+		return err
+	}
+
+	for _, ride := range rides {
+		statuses, err := getAllUnsentStatusesForChair(ctx, ride.ID)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		// ユーザー取得
+		user, err := getUserByID(ctx, ride.UserID)
+		if err != nil {
+			return err
+		}
+		for _, s := range statuses {
+			data := chairGetNotificationResponseData{
+				RideID: ride.ID,
+				User: simpleUser{
+					ID:   user.ID,
+					Name: fmt.Sprintf("%s %s", user.Firstname, user.Lastname),
+				},
+				PickupCoordinate: Coordinate{
+					Latitude:  ride.PickupLatitude,
+					Longitude: ride.PickupLongitude,
+				},
+				DestinationCoordinate: Coordinate{
+					Latitude:  ride.DestinationLatitude,
+					Longitude: ride.DestinationLongitude,
+				},
+				Status: s.Status,
+			}
+			b, _ := json.Marshal(data)
+			select {
+			case conn.ch <- b:
+				// 送れたらchair_sent_atを更新
+				markChairStatusSent(ctx, s.ID)
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+	}
+	return nil
 }
 
 type postChairRidesRideIDStatusRequest struct {
