@@ -67,9 +67,9 @@ func setup() http.Handler {
 	db = _db
 
 	mux := chi.NewRouter()
-	chiinteg.Integrate(mux)
 	mux.Use(middleware.Logger)
 	mux.Use(middleware.Recoverer)
+	chiinteg.Integrate(mux)
 	mux.HandleFunc("POST /api/initialize", postInitialize)
 
 	// app handlers
