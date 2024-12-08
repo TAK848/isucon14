@@ -47,18 +47,18 @@ CREATE TABLE chairs
 ALTER TABLE chairs ADD INDEX idx_access_token (access_token);
 
 DROP TABLE IF EXISTS chair_locations;
-CREATE TABLE chair_locations
-(
-  id         VARCHAR(26) NOT NULL,
-  chair_id   VARCHAR(26) NOT NULL COMMENT '椅子ID',
-  latitude   INTEGER     NOT NULL COMMENT '経度',
-  longitude  INTEGER     NOT NULL COMMENT '緯度',
-  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '登録日時',
-  PRIMARY KEY (id)
-)
-  COMMENT = '椅子の現在位置情報テーブル';
-CREATE INDEX idx_chair_locations_chair_id_created_at
-ON chair_locations (chair_id, created_at);
+-- CREATE TABLE chair_locations
+-- (
+--   id         VARCHAR(26) NOT NULL,
+--   chair_id   VARCHAR(26) NOT NULL COMMENT '椅子ID',
+--   latitude   INTEGER     NOT NULL COMMENT '経度',
+--   longitude  INTEGER     NOT NULL COMMENT '緯度',
+--   created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '登録日時',
+--   PRIMARY KEY (id)
+-- )
+--   COMMENT = '椅子の現在位置情報テーブル';
+-- CREATE INDEX idx_chair_locations_chair_id_created_at
+-- ON chair_locations (chair_id, created_at);
 
 
 DROP TABLE IF EXISTS users;
