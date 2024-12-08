@@ -14,7 +14,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-sql-driver/mysql"
-	"github.com/isucon/isucon14/webapp/go/chiinteg"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -72,7 +71,7 @@ func setup() http.Handler {
 	mux := chi.NewRouter()
 	mux.Use(middleware.Logger)
 	mux.Use(middleware.Recoverer)
-	chiinteg.Integrate(mux)
+	// chiinteg.Integrate(mux)
 	mux.HandleFunc("POST /api/initialize", postInitialize)
 
 	// app handlers
@@ -143,11 +142,11 @@ func postInitialize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go func() {
-		if _, err := http.Get("http://192.168.0.35:9000/api/group/collect"); err != nil {
-			slog.Error("failed to communicate with pprotein", "error", err)
-		}
-	}()
+	// go func() {
+	// 	if _, err := http.Get("http://192.168.0.35:9000/api/group/collect"); err != nil {
+	// 		slog.Error("failed to communicate with pprotein", "error", err)
+	// 	}
+	// }()
 
 	writeJSON(w, http.StatusOK, postInitializeResponse{Language: "go"})
 }
