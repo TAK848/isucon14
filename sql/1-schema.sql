@@ -30,27 +30,35 @@ CREATE TABLE chairs
   model        TEXT         NOT NULL COMMENT '椅子のモデル',
   is_active    TINYINT(1)   NOT NULL COMMENT '配椅子受付中かどうか',
   access_token VARCHAR(255) NOT NULL COMMENT 'アクセストークン',
+  longitude    INTEGER      NULL COMMENT '経度',
+  latitude     INTEGER      NULL COMMENT '緯度',
+  total_distance INTEGER NOT NULL DEFAULT 0 COMMENT '総移動距離',
+  total_distance_updated_at DATETIME(6) NULL COMMENT '総移動距離の更新日時',
   created_at   DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '登録日時',
   updated_at   DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新日時',
   PRIMARY KEY (id)
 )
   COMMENT = '椅子情報テーブル';
+-- ALTER TABLE chairs ADD COLUMN longitude INTEGER NULL COMMENT '経度';
+-- ALTER TABLE chairs ADD COLUMN latitude INTEGER NULL COMMENT '緯度';
+-- ALTER TABLE chairs ADD COLUMN total_distance INTEGER NOT NULL DEFAULT 0 COMMENT '総移動距離';
+-- ALTER TABLE chairs ADD COLUMN total_distance_updated_at DATETIME(6) NULL COMMENT '総移動距離の更新日時';
 
 ALTER TABLE chairs ADD INDEX idx_access_token (access_token);
 
 DROP TABLE IF EXISTS chair_locations;
-CREATE TABLE chair_locations
-(
-  id         VARCHAR(26) NOT NULL,
-  chair_id   VARCHAR(26) NOT NULL COMMENT '椅子ID',
-  latitude   INTEGER     NOT NULL COMMENT '経度',
-  longitude  INTEGER     NOT NULL COMMENT '緯度',
-  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '登録日時',
-  PRIMARY KEY (id)
-)
-  COMMENT = '椅子の現在位置情報テーブル';
-CREATE INDEX idx_chair_locations_chair_id_created_at
-ON chair_locations (chair_id, created_at);
+-- CREATE TABLE chair_locations
+-- (
+--   id         VARCHAR(26) NOT NULL,
+--   chair_id   VARCHAR(26) NOT NULL COMMENT '椅子ID',
+--   latitude   INTEGER     NOT NULL COMMENT '経度',
+--   longitude  INTEGER     NOT NULL COMMENT '緯度',
+--   created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '登録日時',
+--   PRIMARY KEY (id)
+-- )
+--   COMMENT = '椅子の現在位置情報テーブル';
+-- CREATE INDEX idx_chair_locations_chair_id_created_at
+-- ON chair_locations (chair_id, created_at);
 
 
 DROP TABLE IF EXISTS users;

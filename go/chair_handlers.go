@@ -112,28 +112,17 @@ func chairPostCoordinate(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	createdAt := time.Now()
-	chairLocationID := ulid.Make().String()
-	if _, err := tx.ExecContext(
-		ctx,
-		`INSERT INTO chair_locations (id, chair_id, latitude, longitude, created_at) VALUES (?, ?, ?, ?, ?)`,
-		chairLocationID, chair.ID, req.Latitude, req.Longitude, createdAt,
-	); err != nil {
+	totalDistance := 0
+	if chair.Longitude != nil && chair.Latitude != nil {
+		totalDistance = chair.TotalDistance + calculateDistance(*chair.Latitude, *chair.Longitude, req.Latitude, req.Longitude)
+	} else {
+		// 初期地点登録のため0のまま
+	}
+	locationCreatedAt := time.Now()
+	if _, err := tx.ExecContext(ctx, "UPDATE chairs SET latitude = ?, longitude = ?, total_distance = ?, total_distance_updated_at = ? WHERE id = ?", req.Latitude, req.Longitude, totalDistance, locationCreatedAt, chair.ID); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-
-	location := &ChairLocation{
-		// ID:        chairLocationID,
-		// ChairID:   chair.ID,
-		// Latitude:  req.Latitude,
-		// Longitude: req.Longitude,
-		CreatedAt: createdAt,
-	}
-	// if err := tx.GetContext(ctx, location, `SELECT * FROM chair_locations WHERE id = ?`, chairLocationID); err != nil {
-	// 	writeError(w, http.StatusInternalServerError, err)
-	// 	return
-	// }
 
 	ride := &Ride{}
 	if err := tx.GetContext(ctx, ride, `SELECT * FROM rides WHERE chair_id = ? ORDER BY updated_at DESC LIMIT 1`, chair.ID); err != nil {
@@ -170,7 +159,7 @@ func chairPostCoordinate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, &chairPostCoordinateResponse{
-		RecordedAt: location.CreatedAt.UnixMilli(),
+		RecordedAt: locationCreatedAt.UnixMilli(),
 	})
 }
 
