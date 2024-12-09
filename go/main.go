@@ -69,7 +69,7 @@ func setup() http.Handler {
 	db.SetMaxIdleConns(64)
 
 	mux := chi.NewRouter()
-	mux.Use(middleware.Logger)
+	// mux.Use(middleware.Logger)
 	mux.Use(middleware.Recoverer)
 	// chiinteg.Integrate(mux)
 	mux.HandleFunc("POST /api/initialize", postInitialize)
